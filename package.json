@@ -1,0 +1,40 @@
+{
+  "name": "pefa-rag",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "seed:overview": "tsx scripts/seed-overview-db.ts",
+    "download:pdfs": "tsx scripts/download-pdfs.ts",
+    "ingest:pefa": "tsx scripts/ingest-pefa.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.81.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "next": "16.2.2",
+    "openai": "^6.33.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^16.4.5",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "mammoth": "^1.12.0",
+    "pdf-parse": "^2.4.5",
+    "tailwindcss": "^4",
+    "tiktoken": "^1.0.22",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}
