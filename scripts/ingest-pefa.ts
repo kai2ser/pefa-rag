@@ -17,9 +17,12 @@
  *   npm run ingest:pefa -- --resume
  *   npm run ingest:pefa -- --verbose
  */
-import "dotenv/config";
-import fs from "fs";
+import dotenv from "dotenv";
 import path from "path";
+// Mirror Next.js convention: .env.local overrides .env (and both are gitignored).
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+import fs from "fs";
 import { parsePdf } from "./lib/pdf-parser";
 import { chunkText } from "./lib/chunker";
 import { embedTexts } from "./lib/embeddings";

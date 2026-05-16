@@ -13,8 +13,11 @@
  * Usage:
  *   npm run seed:overview
  */
-import "dotenv/config";
+import dotenv from "dotenv";
 import path from "path";
+// Mirror Next.js convention: .env.local overrides .env (and both are gitignored).
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { loadPefaCsv, isPublic, type PefaRow } from "./lib/pefa-csv";
 import { getClient } from "./lib/supabase-loader";
 
