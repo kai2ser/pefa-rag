@@ -66,18 +66,16 @@ CREATE TABLE IF NOT EXISTS pefa_chunks (
 
 CREATE INDEX IF NOT EXISTS idx_pefa_chunks_document ON pefa_chunks(document_id);
 
--- IVFFlat index on the embedding (cosine). lists=50 is a sensible default for
--- ~100 documents → low thousands of chunks. Increase to ~200 if the corpus grows.
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_indexes
-    WHERE indexname = 'idx_pefa_chunks_embedding'
-  ) THEN
-    EXECUTE 'CREATE INDEX idx_pefa_chunks_embedding ON pefa_chunks
-             USING ivfflat (embedding vector_cosine_ops) WITH (lists = 50)';
-  END IF;
-END $$;
+-- NB: pgvector's IVFFlat and HNSW indexes both cap at 2000 dimensions, but
+-- text-embedding-3-large produces 3072-dim vectors. We rely on sequential
+-- scan over pefa_chunks (cosine distance is fast enough at this scale —
+-- ~100 documents → low thousands of chunks). The matching pim-guidance
+-- chunk tables (pim_lit_chunks, pima_chunks, wbg_pers_chunks) also run
+-- without a vector index for the same reason.
+--
+-- If the corpus grows, switch the column to halfvec(3072) and add HNSW:
+--   ALTER TABLE pefa_chunks ALTER COLUMN embedding TYPE halfvec(3072);
+--   CREATE INDEX ON pefa_chunks USING hnsw (embedding halfvec_cosine_ops);
 
 -- Vector match RPC for the PEFA collection
 CREATE OR REPLACE FUNCTION match_pefa_chunks(
