@@ -1,6 +1,18 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Lazy init so process.env is populated (by dotenv in the entrypoint) before
+// the client is constructed. Eager init at module load fails under TypeScript's
+// import-hoisting rules.
+let _client: OpenAI | null = null;
+function client(): OpenAI {
+  if (!_client) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not set");
+    }
+    _client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _client;
+}
 
 const BATCH_SIZE = 100;
 const MAX_RETRIES = 5;
@@ -18,7 +30,7 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
 
     while (retries < MAX_RETRIES) {
       try {
-        const response = await client.embeddings.create({
+        const response = await client().embeddings.create({
           model: "text-embedding-3-large",
           input: batch,
         });

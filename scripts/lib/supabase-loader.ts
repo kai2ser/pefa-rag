@@ -45,6 +45,10 @@ export async function upsertDocument(
   return data.id;
 }
 
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function insertChunks(
   tableName: string,
   documentId: string,
@@ -52,7 +56,11 @@ export async function insertChunks(
   embeddings: number[][]
 ): Promise<void> {
   const supabase = getClient();
-  const BATCH = 500;
+  // 50 rows × ~3072-dim vectors keeps each PostgREST payload well under
+  // the default 8 MB body limit and well under any HTTP/2 frame timeouts
+  // we were seeing on the original BATCH=500 setting.
+  const BATCH = 50;
+  const MAX_RETRIES = 4;
 
   const rows = chunks.map((chunk, i) => ({
     document_id: documentId,
@@ -66,10 +74,31 @@ export async function insertChunks(
 
   for (let i = 0; i < rows.length; i += BATCH) {
     const batch = rows.slice(i, i + BATCH);
-    const { error } = await supabase.from(tableName).insert(batch);
-    if (error) {
+    let attempt = 0;
+    let lastErr: unknown = null;
+    while (attempt < MAX_RETRIES) {
+      try {
+        const { error } = await supabase.from(tableName).insert(batch);
+        if (error) throw error;
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        attempt++;
+        if (attempt >= MAX_RETRIES) break;
+        const delay = 500 * Math.pow(2, attempt); // 1s, 2s, 4s
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(
+          `  Chunk insert batch ${i / BATCH + 1} attempt ${attempt} failed (${msg}); retrying in ${delay}ms`
+        );
+        await sleep(delay);
+      }
+    }
+    if (lastErr) {
+      const msg =
+        lastErr instanceof Error ? lastErr.message : String(lastErr);
       throw new Error(
-        `Chunk insert failed (batch ${i / BATCH + 1}): ${error.message}`
+        `Chunk insert failed (batch ${i / BATCH + 1}, ${MAX_RETRIES} attempts): ${msg}`
       );
     }
   }
